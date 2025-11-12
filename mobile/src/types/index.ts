@@ -4,14 +4,42 @@ export interface User {
   created_at: string;
 }
 
+export interface Subject {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  color: string;
+  created_at: string;
+}
+
+export interface Topic {
+  id: string;
+  subject_id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+}
+
 export interface Deck {
   id: string;
   user_id: string;
+  topic_id?: string;
   name: string;
   description: string;
   original_id: number;
   card_count: number;
   created_at: string;
+}
+
+export interface CardNote {
+  id: string;
+  user_id: string;
+  card_id: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Flashcard {
@@ -52,4 +80,7 @@ export type RootStackParamList = {
   Review: { deckId?: string };
   Upload: undefined;
   Settings: undefined;
+  Subjects: undefined;
+  SubjectDetail: { subjectId: string; subjectName: string };
+  TopicDetail: { topicId: string; topicName: string };
 };

@@ -48,6 +48,20 @@ func (s *Server) setupRoutes() {
 	// Deck routes
 	s.router.GET("/decks", s.getUserDecks)
 	s.router.GET("/decks/:id/cards", s.getDeckCards)
+	s.router.PUT("/decks/:id/topic", s.updateDeckTopic)
+
+	// Subject routes
+	s.router.POST("/subjects", s.createSubject)
+	s.router.GET("/subjects", s.getUserSubjects)
+	s.router.PUT("/subjects/:id", s.updateSubject)
+	s.router.DELETE("/subjects/:id", s.deleteSubject)
+
+	// Topic routes
+	s.router.POST("/topics", s.createTopic)
+	s.router.GET("/topics", s.getUserTopics)
+	s.router.GET("/subjects/:id/topics", s.getSubjectTopics)
+	s.router.PUT("/topics/:id", s.updateTopic)
+	s.router.DELETE("/topics/:id", s.deleteTopic)
 
 	// Review routes
 	s.router.GET("/reviews/due", s.getDueCards)
@@ -55,6 +69,11 @@ func (s *Server) setupRoutes() {
 
 	// Card routes
 	s.router.GET("/cards/:id", s.getCard)
+
+	// Card note routes
+	s.router.POST("/cards/:id/note", s.saveCardNote)
+	s.router.GET("/cards/:id/note", s.getCardNote)
+	s.router.DELETE("/cards/:id/note", s.deleteCardNote)
 }
 
 func (s *Server) Run(addr string) error {
@@ -440,4 +459,292 @@ func (s *Server) getCard(c *gin.Context) {
 	// This would need to be implemented in storage
 	// For now, return a placeholder
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+}
+
+// Subject handlers
+func (s *Server) createSubject(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var req struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+		Color       string `json:"color"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	subject := &models.Subject{
+		UserID:      userID,
+		Name:        req.Name,
+		Description: req.Description,
+		Color:       req.Color,
+	}
+
+	if subject.Color == "" {
+		subject.Color = "#007AFF"
+	}
+
+	if err := s.storage.CreateSubject(subject); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subject"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, subject)
+}
+
+func (s *Server) getUserSubjects(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	subjects, err := s.storage.GetUserSubjects(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subjects"})
+		return
+	}
+
+	c.JSON(http.StatusOK, subjects)
+}
+
+func (s *Server) updateSubject(c *gin.Context) {
+	subjectID := c.Param("id")
+
+	var req struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+		Color       string `json:"color"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	subject := &models.Subject{
+		ID:          subjectID,
+		Name:        req.Name,
+		Description: req.Description,
+		Color:       req.Color,
+	}
+
+	if err := s.storage.UpdateSubject(subject); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subject"})
+		return
+	}
+
+	c.JSON(http.StatusOK, subject)
+}
+
+func (s *Server) deleteSubject(c *gin.Context) {
+	subjectID := c.Param("id")
+
+	if err := s.storage.DeleteSubject(subjectID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete subject"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Subject deleted successfully"})
+}
+
+// Topic handlers
+func (s *Server) createTopic(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var req struct {
+		SubjectID   string `json:"subject_id" binding:"required"`
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	topic := &models.Topic{
+		SubjectID:   req.SubjectID,
+		UserID:      userID,
+		Name:        req.Name,
+		Description: req.Description,
+	}
+
+	if err := s.storage.CreateTopic(topic); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create topic"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, topic)
+}
+
+func (s *Server) getUserTopics(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	topics, err := s.storage.GetUserTopics(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get topics"})
+		return
+	}
+
+	c.JSON(http.StatusOK, topics)
+}
+
+func (s *Server) getSubjectTopics(c *gin.Context) {
+	subjectID := c.Param("id")
+
+	topics, err := s.storage.GetSubjectTopics(subjectID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get topics"})
+		return
+	}
+
+	c.JSON(http.StatusOK, topics)
+}
+
+func (s *Server) updateTopic(c *gin.Context) {
+	topicID := c.Param("id")
+
+	var req struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	topic := &models.Topic{
+		ID:          topicID,
+		Name:        req.Name,
+		Description: req.Description,
+	}
+
+	if err := s.storage.UpdateTopic(topic); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update topic"})
+		return
+	}
+
+	c.JSON(http.StatusOK, topic)
+}
+
+func (s *Server) deleteTopic(c *gin.Context) {
+	topicID := c.Param("id")
+
+	if err := s.storage.DeleteTopic(topicID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete topic"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Topic deleted successfully"})
+}
+
+// Deck-Topic association
+func (s *Server) updateDeckTopic(c *gin.Context) {
+	deckID := c.Param("id")
+
+	var req struct {
+		TopicID string `json:"topic_id"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := s.storage.UpdateDeckTopic(deckID, req.TopicID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update deck topic"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deck topic updated successfully"})
+}
+
+// Card note handlers
+func (s *Server) saveCardNote(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	cardID := c.Param("id")
+
+	var req struct {
+		Note string `json:"note" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	note := &models.CardNote{
+		UserID: userID,
+		CardID: cardID,
+		Note:   req.Note,
+	}
+
+	if err := s.storage.SaveCardNote(note); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save note"})
+		return
+	}
+
+	c.JSON(http.StatusOK, note)
+}
+
+func (s *Server) getCardNote(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	cardID := c.Param("id")
+
+	note, err := s.storage.GetCardNote(userID, cardID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get note"})
+		return
+	}
+
+	if note == nil {
+		c.JSON(http.StatusOK, gin.H{"note": ""})
+		return
+	}
+
+	c.JSON(http.StatusOK, note)
+}
+
+func (s *Server) deleteCardNote(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	cardID := c.Param("id")
+
+	if err := s.storage.DeleteCardNote(userID, cardID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete note"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Note deleted successfully"})
 }

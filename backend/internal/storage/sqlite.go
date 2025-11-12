@@ -36,15 +36,38 @@ func (s *SQLiteStorage) initSchema() error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
+	CREATE TABLE IF NOT EXISTS subjects (
+		id TEXT PRIMARY KEY,
+		user_id TEXT NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT,
+		color TEXT DEFAULT '#007AFF',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES users(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS topics (
+		id TEXT PRIMARY KEY,
+		subject_id TEXT NOT NULL,
+		user_id TEXT NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (subject_id) REFERENCES subjects(id),
+		FOREIGN KEY (user_id) REFERENCES users(id)
+	);
+
 	CREATE TABLE IF NOT EXISTS decks (
 		id TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL,
+		topic_id TEXT,
 		name TEXT NOT NULL,
 		description TEXT,
 		original_id INTEGER,
 		card_count INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (user_id) REFERENCES users(id)
+		FOREIGN KEY (user_id) REFERENCES users(id),
+		FOREIGN KEY (topic_id) REFERENCES topics(id)
 	);
 
 	CREATE TABLE IF NOT EXISTS flashcards (
@@ -84,6 +107,18 @@ func (s *SQLiteStorage) initSchema() error {
 		FOREIGN KEY (card_id) REFERENCES flashcards(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS card_notes (
+		id TEXT PRIMARY KEY,
+		user_id TEXT NOT NULL,
+		card_id TEXT NOT NULL,
+		note TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES users(id),
+		FOREIGN KEY (card_id) REFERENCES flashcards(id),
+		UNIQUE(user_id, card_id)
+	);
+
 	CREATE TABLE IF NOT EXISTS upload_sessions (
 		id TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL,
@@ -100,6 +135,8 @@ func (s *SQLiteStorage) initSchema() error {
 
 	CREATE INDEX IF NOT EXISTS idx_schedules_next_review ON card_schedules(user_id, next_review_at);
 	CREATE INDEX IF NOT EXISTS idx_flashcards_deck ON flashcards(deck_id);
+	CREATE INDEX IF NOT EXISTS idx_topics_subject ON topics(subject_id);
+	CREATE INDEX IF NOT EXISTS idx_decks_topic ON decks(topic_id);
 	`
 
 	_, err := s.db.Exec(schema)
@@ -143,16 +180,16 @@ func (s *SQLiteStorage) CreateDeck(deck *models.ImportedDeck) error {
 	deck.CreatedAt = time.Now()
 
 	_, err := s.db.Exec(`
-		INSERT INTO decks (id, user_id, name, description, original_id, card_count, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		deck.ID, deck.UserID, deck.Name, deck.Description, deck.OriginalID, deck.CardCount, deck.CreatedAt,
+		INSERT INTO decks (id, user_id, topic_id, name, description, original_id, card_count, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		deck.ID, deck.UserID, deck.TopicID, deck.Name, deck.Description, deck.OriginalID, deck.CardCount, deck.CreatedAt,
 	)
 	return err
 }
 
 func (s *SQLiteStorage) GetUserDecks(userID string) ([]models.ImportedDeck, error) {
 	rows, err := s.db.Query(`
-		SELECT id, user_id, name, description, original_id, card_count, created_at
+		SELECT id, user_id, topic_id, name, description, original_id, card_count, created_at
 		FROM decks WHERE user_id = ?
 		ORDER BY created_at DESC
 	`, userID)
@@ -165,7 +202,7 @@ func (s *SQLiteStorage) GetUserDecks(userID string) ([]models.ImportedDeck, erro
 	for rows.Next() {
 		var deck models.ImportedDeck
 		err := rows.Scan(
-			&deck.ID, &deck.UserID, &deck.Name, &deck.Description,
+			&deck.ID, &deck.UserID, &deck.TopicID, &deck.Name, &deck.Description,
 			&deck.OriginalID, &deck.CardCount, &deck.CreatedAt,
 		)
 		if err != nil {
@@ -175,6 +212,19 @@ func (s *SQLiteStorage) GetUserDecks(userID string) ([]models.ImportedDeck, erro
 	}
 
 	return decks, rows.Err()
+}
+
+func (s *SQLiteStorage) UpdateDeckTopic(deckID, topicID string) error {
+	var topicIDPtr *string
+	if topicID != "" {
+		topicIDPtr = &topicID
+	}
+
+	_, err := s.db.Exec(
+		"UPDATE decks SET topic_id = ? WHERE id = ?",
+		topicIDPtr, deckID,
+	)
+	return err
 }
 
 // Flashcard operations
@@ -304,6 +354,207 @@ func (s *SQLiteStorage) CreateReviewLog(log *models.ReviewLog) error {
 		INSERT INTO review_logs (id, user_id, card_id, quality, reviewed_at)
 		VALUES (?, ?, ?, ?, ?)`,
 		log.ID, log.UserID, log.CardID, log.Quality, log.ReviewedAt,
+	)
+	return err
+}
+
+// Subject operations
+func (s *SQLiteStorage) CreateSubject(subject *models.Subject) error {
+	subject.ID = uuid.New().String()
+	subject.CreatedAt = time.Now()
+
+	_, err := s.db.Exec(`
+		INSERT INTO subjects (id, user_id, name, description, color, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		subject.ID, subject.UserID, subject.Name, subject.Description, subject.Color, subject.CreatedAt,
+	)
+	return err
+}
+
+func (s *SQLiteStorage) GetUserSubjects(userID string) ([]models.Subject, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, name, description, color, created_at
+		FROM subjects WHERE user_id = ?
+		ORDER BY name ASC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subjects []models.Subject
+	for rows.Next() {
+		var subject models.Subject
+		err := rows.Scan(
+			&subject.ID, &subject.UserID, &subject.Name,
+			&subject.Description, &subject.Color, &subject.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		subjects = append(subjects, subject)
+	}
+
+	return subjects, rows.Err()
+}
+
+func (s *SQLiteStorage) UpdateSubject(subject *models.Subject) error {
+	_, err := s.db.Exec(`
+		UPDATE subjects SET name = ?, description = ?, color = ?
+		WHERE id = ?`,
+		subject.Name, subject.Description, subject.Color, subject.ID,
+	)
+	return err
+}
+
+func (s *SQLiteStorage) DeleteSubject(subjectID string) error {
+	_, err := s.db.Exec("DELETE FROM subjects WHERE id = ?", subjectID)
+	return err
+}
+
+// Topic operations
+func (s *SQLiteStorage) CreateTopic(topic *models.Topic) error {
+	topic.ID = uuid.New().String()
+	topic.CreatedAt = time.Now()
+
+	_, err := s.db.Exec(`
+		INSERT INTO topics (id, subject_id, user_id, name, description, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		topic.ID, topic.SubjectID, topic.UserID, topic.Name, topic.Description, topic.CreatedAt,
+	)
+	return err
+}
+
+func (s *SQLiteStorage) GetSubjectTopics(subjectID string) ([]models.Topic, error) {
+	rows, err := s.db.Query(`
+		SELECT id, subject_id, user_id, name, description, created_at
+		FROM topics WHERE subject_id = ?
+		ORDER BY name ASC
+	`, subjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var topics []models.Topic
+	for rows.Next() {
+		var topic models.Topic
+		err := rows.Scan(
+			&topic.ID, &topic.SubjectID, &topic.UserID,
+			&topic.Name, &topic.Description, &topic.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		topics = append(topics, topic)
+	}
+
+	return topics, rows.Err()
+}
+
+func (s *SQLiteStorage) GetUserTopics(userID string) ([]models.Topic, error) {
+	rows, err := s.db.Query(`
+		SELECT id, subject_id, user_id, name, description, created_at
+		FROM topics WHERE user_id = ?
+		ORDER BY name ASC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var topics []models.Topic
+	for rows.Next() {
+		var topic models.Topic
+		err := rows.Scan(
+			&topic.ID, &topic.SubjectID, &topic.UserID,
+			&topic.Name, &topic.Description, &topic.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		topics = append(topics, topic)
+	}
+
+	return topics, rows.Err()
+}
+
+func (s *SQLiteStorage) UpdateTopic(topic *models.Topic) error {
+	_, err := s.db.Exec(`
+		UPDATE topics SET name = ?, description = ?
+		WHERE id = ?`,
+		topic.Name, topic.Description, topic.ID,
+	)
+	return err
+}
+
+func (s *SQLiteStorage) DeleteTopic(topicID string) error {
+	_, err := s.db.Exec("DELETE FROM topics WHERE id = ?", topicID)
+	return err
+}
+
+// Card note operations
+func (s *SQLiteStorage) SaveCardNote(note *models.CardNote) error {
+	// Check if note exists
+	var existingID string
+	err := s.db.QueryRow(
+		"SELECT id FROM card_notes WHERE user_id = ? AND card_id = ?",
+		note.UserID, note.CardID,
+	).Scan(&existingID)
+
+	now := time.Now()
+
+	if err == sql.ErrNoRows {
+		// Create new note
+		note.ID = uuid.New().String()
+		note.CreatedAt = now
+		note.UpdatedAt = now
+
+		_, err = s.db.Exec(`
+			INSERT INTO card_notes (id, user_id, card_id, note, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?)`,
+			note.ID, note.UserID, note.CardID, note.Note, note.CreatedAt, note.UpdatedAt,
+		)
+		return err
+	} else if err != nil {
+		return err
+	}
+
+	// Update existing note
+	note.ID = existingID
+	note.UpdatedAt = now
+	_, err = s.db.Exec(`
+		UPDATE card_notes SET note = ?, updated_at = ?
+		WHERE id = ?`,
+		note.Note, note.UpdatedAt, note.ID,
+	)
+	return err
+}
+
+func (s *SQLiteStorage) GetCardNote(userID, cardID string) (*models.CardNote, error) {
+	note := &models.CardNote{}
+	err := s.db.QueryRow(`
+		SELECT id, user_id, card_id, note, created_at, updated_at
+		FROM card_notes
+		WHERE user_id = ? AND card_id = ?
+	`, userID, cardID).Scan(
+		&note.ID, &note.UserID, &note.CardID, &note.Note,
+		&note.CreatedAt, &note.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No note exists, which is valid
+	}
+	if err != nil {
+		return nil, err
+	}
+	return note, nil
+}
+
+func (s *SQLiteStorage) DeleteCardNote(userID, cardID string) error {
+	_, err := s.db.Exec(
+		"DELETE FROM card_notes WHERE user_id = ? AND card_id = ?",
+		userID, cardID,
 	)
 	return err
 }

@@ -9,10 +9,31 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// Subject represents a broad category (e.g., "Languages", "Medicine")
+type Subject struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Color       string    `json:"color"` // Hex color for UI
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// Topic represents a specific topic within a subject (e.g., "Spanish Vocabulary", "Anatomy")
+type Topic struct {
+	ID          string    `json:"id"`
+	SubjectID   string    `json:"subject_id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 // ImportedDeck represents an imported Anki deck
 type ImportedDeck struct {
 	ID          string    `json:"id"`
 	UserID      string    `json:"user_id"`
+	TopicID     *string   `json:"topic_id,omitempty"` // Optional: deck can belong to a topic
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	OriginalID  int64     `json:"original_id"` // Original Anki deck ID
@@ -52,6 +73,16 @@ type CardSchedule struct {
 	LastReviewAt time.Time `json:"last_review_at"`
 	State        string    `json:"state"` // new, learning, review, relearning
 	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// CardNote represents a custom note added by user for a card
+type CardNote struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	CardID    string    `json:"card_id"`
+	Note      string    `json:"note"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // UploadSession represents an ongoing file upload
