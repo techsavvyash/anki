@@ -6,20 +6,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, CardSchedule, Flashcard } from '../types';
 import apiClient from '../api/client';
-import RenderHtml from 'react-native-render-html';
+import { IS_TABLET, spacing, responsiveFontSize, getCardMaxWidth } from '../utils/responsive';
 
 type ReviewScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Review'>;
 
 interface Props {
   navigation: ReviewScreenNavigationProp;
 }
-
-const { width } = Dimensions.get('window');
 
 export default function ReviewScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
@@ -28,6 +26,7 @@ export default function ReviewScreen({ navigation }: Props) {
   const [currentCard, setCurrentCard] = useState<Flashcard | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [loadingCard, setLoadingCard] = useState(false);
+  const { width, height } = useWindowDimensions();
 
   useEffect(() => {
     loadDueCards();
@@ -123,6 +122,7 @@ export default function ReviewScreen({ navigation }: Props) {
 
   const schedule = dueSchedules[currentIndex];
   const progress = ((currentIndex + 1) / dueSchedules.length) * 100;
+  const isLandscape = width > height;
 
   return (
     <View style={styles.container}>
@@ -135,10 +135,22 @@ export default function ReviewScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      <ScrollView style={styles.cardContainer} contentContainerStyle={styles.cardContent}>
-        <View style={styles.card}>
+      <ScrollView
+        style={styles.cardContainer}
+        contentContainerStyle={[
+          styles.cardContent,
+          IS_TABLET && styles.cardContentTablet,
+        ]}
+      >
+        <View
+          style={[
+            styles.card,
+            IS_TABLET && styles.cardTablet,
+            { maxWidth: getCardMaxWidth() },
+          ]}
+        >
           <Text style={styles.cardLabel}>Question</Text>
-          <View style={styles.cardTextContainer}>
+          <View style={[styles.cardTextContainer, IS_TABLET && styles.cardTextContainerTablet]}>
             <Text style={styles.cardText}>
               {/* In a real implementation, this would be the card's front */}
               Card {schedule.card_id}
@@ -149,7 +161,7 @@ export default function ReviewScreen({ navigation }: Props) {
             <>
               <View style={styles.divider} />
               <Text style={styles.cardLabel}>Answer</Text>
-              <View style={styles.cardTextContainer}>
+              <View style={[styles.cardTextContainer, IS_TABLET && styles.cardTextContainerTablet]}>
                 <Text style={styles.cardText}>
                   {/* In a real implementation, this would be the card's back */}
                   Answer for card {schedule.card_id}
@@ -161,24 +173,29 @@ export default function ReviewScreen({ navigation }: Props) {
 
         <View style={styles.stateInfo}>
           <Text style={styles.stateText}>
-            State: {schedule.state} | Interval: {schedule.interval} days
+            State: {schedule.state} | Interval: {schedule.interval} days | Ease: {schedule.ease_factor.toFixed(2)}
           </Text>
         </View>
       </ScrollView>
 
       {!showAnswer ? (
-        <TouchableOpacity
-          style={styles.showAnswerButton}
-          onPress={() => setShowAnswer(true)}
-        >
-          <Text style={styles.showAnswerButtonText}>Show Answer</Text>
-        </TouchableOpacity>
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            style={[styles.showAnswerButton, IS_TABLET && styles.showAnswerButtonTablet]}
+            onPress={() => setShowAnswer(true)}
+          >
+            <Text style={styles.showAnswerButtonText}>Show Answer</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, IS_TABLET && isLandscape && styles.buttonContainerLandscape]}>
           <Text style={styles.rateLabel}>How well did you know this?</Text>
-          <View style={styles.qualityButtons}>
+          <View style={[
+            styles.qualityButtons,
+            IS_TABLET && isLandscape && styles.qualityButtonsRow,
+          ]}>
             <TouchableOpacity
-              style={[styles.qualityButton, styles.againButton]}
+              style={[styles.qualityButton, styles.againButton, IS_TABLET && styles.qualityButtonTablet]}
               onPress={() => handleReview(0)}
             >
               <Text style={styles.qualityButtonText}>Again</Text>
@@ -186,7 +203,7 @@ export default function ReviewScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.qualityButton, styles.hardButton]}
+              style={[styles.qualityButton, styles.hardButton, IS_TABLET && styles.qualityButtonTablet]}
               onPress={() => handleReview(2)}
             >
               <Text style={styles.qualityButtonText}>Hard</Text>
@@ -194,7 +211,7 @@ export default function ReviewScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.qualityButton, styles.goodButton]}
+              style={[styles.qualityButton, styles.goodButton, IS_TABLET && styles.qualityButtonTablet]}
               onPress={() => handleReview(3)}
             >
               <Text style={styles.qualityButtonText}>Good</Text>
@@ -204,7 +221,7 @@ export default function ReviewScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.qualityButton, styles.easyButton]}
+              style={[styles.qualityButton, styles.easyButton, IS_TABLET && styles.qualityButtonTablet]}
               onPress={() => handleReview(5)}
             >
               <Text style={styles.qualityButtonText}>Easy</Text>
@@ -228,108 +245,148 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing.xxl,
     backgroundColor: '#f5f5f5',
   },
   progressContainer: {
-    padding: 16,
+    padding: spacing.md,
     backgroundColor: '#fff',
   },
   progressBar: {
-    height: 8,
+    height: IS_TABLET ? 12 : 8,
     backgroundColor: '#e0e0e0',
-    borderRadius: 4,
+    borderRadius: IS_TABLET ? 6 : 4,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#007AFF',
   },
   progressText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: '#666',
     textAlign: 'center',
+    fontWeight: '600',
   },
   cardContainer: {
     flex: 1,
   },
   cardContent: {
-    padding: 20,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  cardContentTablet: {
+    padding: spacing.lg,
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 24,
+    padding: spacing.lg,
+    width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    alignSelf: 'center',
+  },
+  cardTablet: {
+    borderRadius: 20,
+    padding: spacing.xl,
+    shadowRadius: 12,
+    elevation: 6,
   },
   cardLabel: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontWeight: '600',
     color: '#007AFF',
-    marginBottom: 12,
+    marginBottom: spacing.md,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   cardTextContainer: {
     minHeight: 100,
   },
+  cardTextContainerTablet: {
+    minHeight: IS_TABLET ? 200 : 100,
+  },
   cardText: {
-    fontSize: 20,
+    fontSize: IS_TABLET ? 24 : 20,
     color: '#333',
-    lineHeight: 32,
+    lineHeight: IS_TABLET ? 38 : 32,
   },
   divider: {
     height: 1,
     backgroundColor: '#e0e0e0',
-    marginVertical: 20,
+    marginVertical: spacing.lg,
   },
   stateInfo: {
-    marginTop: 16,
-    padding: 12,
+    marginTop: spacing.md,
+    padding: spacing.md,
     backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    borderRadius: IS_TABLET ? 12 : 8,
+    width: '100%',
+    maxWidth: getCardMaxWidth(),
   },
   stateText: {
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: '#666',
     textAlign: 'center',
   },
+  actionContainer: {
+    padding: spacing.md,
+    backgroundColor: '#fff',
+  },
   showAnswerButton: {
-    margin: 20,
-    padding: 18,
+    padding: spacing.md,
     backgroundColor: '#007AFF',
     borderRadius: 12,
     alignItems: 'center',
   },
+  showAnswerButtonTablet: {
+    padding: spacing.lg,
+    borderRadius: 16,
+  },
   showAnswerButtonText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontWeight: '600',
     color: '#fff',
   },
   buttonContainer: {
-    padding: 20,
+    padding: spacing.md,
     backgroundColor: '#fff',
   },
+  buttonContainerLandscape: {
+    padding: spacing.lg,
+  },
   rateLabel: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   qualityButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: IS_TABLET ? spacing.md : spacing.sm,
+  },
+  qualityButtonsRow: {
+    justifyContent: 'center',
+    maxWidth: 800,
+    alignSelf: 'center',
   },
   qualityButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    padding: spacing.md,
+    borderRadius: IS_TABLET ? 12 : 8,
     alignItems: 'center',
+    minHeight: IS_TABLET ? 80 : 60,
+    justifyContent: 'center',
+  },
+  qualityButtonTablet: {
+    padding: spacing.lg,
+    minWidth: IS_TABLET ? 150 : undefined,
   },
   againButton: {
     backgroundColor: '#FF3B30',
@@ -344,41 +401,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
   },
   qualityButtonText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   qualitySubtext: {
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: '#fff',
     opacity: 0.9,
   },
   doneIcon: {
-    fontSize: 64,
-    marginBottom: 20,
+    fontSize: IS_TABLET ? 96 : 64,
+    marginBottom: spacing.lg,
   },
   doneTitle: {
-    fontSize: 28,
+    fontSize: responsiveFontSize(28),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   doneText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: '#666',
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
+    marginBottom: spacing.xl,
+    lineHeight: responsiveFontSize(24),
+    maxWidth: IS_TABLET ? 600 : undefined,
   },
   button: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: IS_TABLET ? 16 : 12,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontWeight: '600',
     color: '#fff',
   },

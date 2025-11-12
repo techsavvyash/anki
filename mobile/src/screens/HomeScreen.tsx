@@ -10,6 +10,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import apiClient from '../api/client';
+import { IS_TABLET, spacing, responsiveFontSize, getCardMaxWidth } from '../utils/responsive';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -63,54 +64,83 @@ export default function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={IS_TABLET ? styles.contentContainerTablet : undefined}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Anki Flashcards</Text>
         <Text style={styles.subtitle}>Spaced Repetition Learning</Text>
       </View>
 
-      <View style={styles.statsCard}>
-        <Text style={styles.statsNumber}>{dueCount}</Text>
-        <Text style={styles.statsLabel}>Cards Due Today</Text>
-      </View>
+      <View style={styles.mainContent}>
+        <View style={styles.statsCard}>
+          <Text style={styles.statsNumber}>{dueCount}</Text>
+          <Text style={styles.statsLabel}>Cards Due Today</Text>
+        </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
-          onPress={() => navigation.navigate('Review')}
-          disabled={dueCount === 0}
-        >
-          <Text style={styles.buttonText}>
-            {dueCount > 0 ? 'Start Review' : 'No Cards Due'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton, IS_TABLET && styles.buttonTablet]}
+            onPress={() => navigation.navigate('Review')}
+            disabled={dueCount === 0}
+          >
+            <Text style={styles.primaryButtonIcon}>🎯</Text>
+            <Text style={styles.buttonText}>
+              {dueCount > 0 ? 'Start Review' : 'No Cards Due'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={() => navigation.navigate('Decks')}
-        >
-          <Text style={[styles.buttonText, styles.secondaryButtonText]}>
-            My Decks
-          </Text>
-        </TouchableOpacity>
+          <View style={IS_TABLET ? styles.secondaryButtonsRow : undefined}>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.secondaryButton,
+                IS_TABLET && styles.buttonTablet,
+                IS_TABLET && styles.buttonTabletSecondary,
+              ]}
+              onPress={() => navigation.navigate('Decks')}
+            >
+              <Text style={styles.secondaryButtonIcon}>📚</Text>
+              <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+                My Decks
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={() => navigation.navigate('Upload')}
-        >
-          <Text style={[styles.buttonText, styles.secondaryButtonText]}>
-            Import .apkg File
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.secondaryButton,
+                IS_TABLET && styles.buttonTablet,
+                IS_TABLET && styles.buttonTabletSecondary,
+              ]}
+              onPress={() => navigation.navigate('Upload')}
+            >
+              <Text style={styles.secondaryButtonIcon}>📁</Text>
+              <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+                Import .apkg File
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      <View style={styles.infoSection}>
-        <Text style={styles.infoTitle}>How it works:</Text>
-        <Text style={styles.infoText}>
-          1. Import your Anki .apkg files{'\n'}
-          2. Review cards using spaced repetition{'\n'}
-          3. Build long-term memory retention
-        </Text>
+        <View style={styles.infoSection}>
+          <Text style={styles.infoTitle}>How it works:</Text>
+          <View style={IS_TABLET ? styles.infoRowTablet : undefined}>
+            <View style={IS_TABLET ? styles.infoColumn : styles.infoItem}>
+              <Text style={styles.infoNumber}>1</Text>
+              <Text style={styles.infoText}>Import your Anki .apkg files</Text>
+            </View>
+            <View style={IS_TABLET ? styles.infoColumn : styles.infoItem}>
+              <Text style={styles.infoNumber}>2</Text>
+              <Text style={styles.infoText}>Review cards using spaced repetition</Text>
+            </View>
+            <View style={IS_TABLET ? styles.infoColumn : styles.infoItem}>
+              <Text style={styles.infoNumber}>3</Text>
+              <Text style={styles.infoText}>Build long-term memory retention</Text>
+            </View>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -121,6 +151,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  contentContainerTablet: {
+    maxWidth: 1000,
+    alignSelf: 'center',
+    width: '100%',
+  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -129,52 +164,65 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#007AFF',
-    padding: 30,
-    paddingTop: 60,
+    padding: spacing.xl,
+    paddingTop: IS_TABLET ? spacing.xxl : 60,
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: IS_TABLET ? 48 : 32,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: IS_TABLET ? 20 : 16,
     color: '#fff',
     opacity: 0.9,
   },
+  mainContent: {
+    padding: spacing.md,
+  },
   statsCard: {
     backgroundColor: '#fff',
-    margin: 20,
-    padding: 30,
-    borderRadius: 12,
+    margin: IS_TABLET ? spacing.lg : spacing.md,
+    padding: IS_TABLET ? spacing.xxl : spacing.xl,
+    borderRadius: IS_TABLET ? 20 : 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: IS_TABLET ? 8 : 4,
+    elevation: IS_TABLET ? 5 : 3,
   },
   statsNumber: {
-    fontSize: 48,
+    fontSize: IS_TABLET ? 72 : 48,
     fontWeight: 'bold',
     color: '#007AFF',
   },
   statsLabel: {
-    fontSize: 16,
+    fontSize: IS_TABLET ? 20 : 16,
     color: '#666',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   buttonContainer: {
-    padding: 20,
-    gap: 12,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  secondaryButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
   },
   button: {
-    padding: 18,
-    borderRadius: 12,
+    padding: spacing.md,
+    borderRadius: IS_TABLET ? 16 : 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  buttonTablet: {
+    padding: spacing.lg,
+  },
+  buttonTabletSecondary: {
+    flex: 1,
   },
   primaryButton: {
     backgroundColor: '#007AFF',
@@ -184,13 +232,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  primaryButtonIcon: {
+    fontSize: IS_TABLET ? 48 : 32,
+    marginBottom: spacing.sm,
+  },
   secondaryButton: {
     backgroundColor: '#fff',
     borderWidth: 2,
     borderColor: '#007AFF',
   },
+  secondaryButtonIcon: {
+    fontSize: IS_TABLET ? 36 : 24,
+    marginBottom: spacing.xs,
+  },
   buttonText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontWeight: '600',
     color: '#fff',
   },
@@ -198,20 +254,38 @@ const styles = StyleSheet.create({
     color: '#007AFF',
   },
   infoSection: {
-    margin: 20,
-    padding: 20,
+    margin: spacing.md,
+    padding: spacing.lg,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: IS_TABLET ? 20 : 12,
   },
   infoTitle: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
+  },
+  infoRowTablet: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  infoColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  infoItem: {
+    marginBottom: spacing.md,
+  },
+  infoNumber: {
+    fontSize: IS_TABLET ? 32 : 24,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: spacing.xs,
   },
   infoText: {
-    fontSize: 15,
+    fontSize: responsiveFontSize(15),
     color: '#666',
-    lineHeight: 24,
+    lineHeight: responsiveFontSize(24),
+    textAlign: IS_TABLET ? 'center' : 'left',
   },
 });

@@ -1,16 +1,40 @@
 # Anki Mobile App
 
-A React Native/Expo iOS app for viewing Anki flashcards with spaced repetition learning.
+A React Native/Expo iOS app for viewing Anki flashcards with spaced repetition learning, fully optimized for both iPhone and iPad.
 
 ## Features
 
-- 📱 iOS-first design with React Native + Expo
-- 📦 Import large .apkg files (800MB+)
-- 🧠 Spaced repetition using SM-2 algorithm
-- 📚 Multiple deck support
-- 🎯 Clean, intuitive flashcard interface
-- 📊 Progress tracking
-- 🔄 Sync with backend server
+- 📱 **iOS-first design** with React Native + Expo
+- 📦 **Import large .apkg files** (800MB+) with chunked upload
+- 🧠 **Spaced repetition** using SM-2 algorithm
+- 📚 **Multiple deck support**
+- 🎯 **Clean, intuitive flashcard interface**
+- 📊 **Progress tracking**
+- 🔄 **Sync with backend server**
+- 📲 **iPad optimized** with responsive layouts and landscape support
+
+## iPad Optimizations
+
+The app is fully optimized for iPad with the following features:
+
+### 📐 Responsive Layouts
+- **Grid views**: 2-3 columns for decks (depending on orientation)
+- **Larger cards**: Better use of screen real estate
+- **Bigger fonts and spacing**: Optimized for comfortable reading
+- **Adaptive components**: All screens adjust to iPad screen size
+
+### 🔄 Landscape Support
+- **Automatic adaptation**: Layouts change based on orientation
+- **Full landscape support**: All features work in any orientation
+- **Dynamic columns**: Grid layouts adjust from portrait to landscape
+- **Optimized review**: Review buttons spread out in landscape mode
+
+### 🎨 iPad-Specific Features
+- Larger touch targets for easier interaction
+- Enhanced shadows and border radius for premium feel
+- Side-by-side buttons in landscape
+- Centered content with max-width constraints
+- iPad-specific tips and information sections
 
 ## Prerequisites
 

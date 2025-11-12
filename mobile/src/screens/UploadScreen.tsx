@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import apiClient from '../api/client';
+import { IS_TABLET, spacing, responsiveFontSize } from '../utils/responsive';
 
 type UploadScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Upload'>;
 
@@ -159,12 +161,19 @@ export default function UploadScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={[styles.content, IS_TABLET && styles.contentTablet]}>
+        <View style={styles.iconContainer}>
+          <Text style={styles.iconText}>📦</Text>
+        </View>
+
         <Text style={styles.title}>Import Anki Deck</Text>
         <Text style={styles.description}>
           Select an .apkg file from your device to import your Anki flashcards.
-          Files up to 800MB+ are supported.
+          {IS_TABLET && '\n'}Files up to 800MB+ are supported.
         </Text>
 
         {uploading ? (
@@ -177,23 +186,41 @@ export default function UploadScreen({ navigation }: Props) {
             <Text style={styles.progressText}>{Math.round(progress)}%</Text>
           </View>
         ) : (
-          <TouchableOpacity style={styles.button} onPress={pickDocument}>
+          <TouchableOpacity
+            style={[styles.button, IS_TABLET && styles.buttonTablet]}
+            onPress={pickDocument}
+          >
             <Text style={styles.buttonIcon}>📁</Text>
             <Text style={styles.buttonText}>Select .apkg File</Text>
           </TouchableOpacity>
         )}
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Supported Features:</Text>
-          <Text style={styles.infoText}>
-            • Basic flashcards (front/back){'\n'}
-            • Multiple decks{'\n'}
-            • Large files (800MB+){'\n'}
-            • Spaced repetition scheduling
-          </Text>
+        <View style={[styles.infoBox, IS_TABLET && styles.infoBoxTablet]}>
+          <Text style={styles.infoTitle}>✨ Supported Features</Text>
+          <View style={IS_TABLET ? styles.infoGrid : undefined}>
+            <View style={IS_TABLET ? styles.infoColumn : styles.infoItem}>
+              <Text style={styles.infoItemText}>📝 Basic flashcards</Text>
+              <Text style={styles.infoItemText}>📚 Multiple decks</Text>
+            </View>
+            <View style={IS_TABLET ? styles.infoColumn : styles.infoItem}>
+              <Text style={styles.infoItemText}>💾 Large files (800MB+)</Text>
+              <Text style={styles.infoItemText}>🧠 Spaced repetition</Text>
+            </View>
+          </View>
         </View>
+
+        {IS_TABLET && (
+          <View style={styles.tipsBox}>
+            <Text style={styles.tipsTitle}>💡 Tips for iPad</Text>
+            <Text style={styles.tipsText}>
+              • Rotate your device for different layouts{'\n'}
+              • Use split-screen for better multitasking{'\n'}
+              • Larger cards make reviewing easier on iPad
+            </Text>
+          </View>
+        )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -202,90 +229,154 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
-    padding: 20,
+    padding: spacing.lg,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentTablet: {
+    padding: spacing.xxl,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  iconContainer: {
+    marginBottom: spacing.lg,
+  },
+  iconText: {
+    fontSize: IS_TABLET ? 96 : 64,
   },
   title: {
-    fontSize: 28,
+    fontSize: responsiveFontSize(28),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: '#666',
     textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 24,
+    marginBottom: spacing.xxl,
+    lineHeight: responsiveFontSize(24),
+    maxWidth: IS_TABLET ? 600 : undefined,
   },
   button: {
     backgroundColor: '#007AFF',
-    padding: 20,
+    padding: spacing.lg,
     borderRadius: 12,
     alignItems: 'center',
+    width: '100%',
+    maxWidth: IS_TABLET ? 400 : undefined,
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
+  buttonTablet: {
+    padding: spacing.xl,
+    borderRadius: 16,
+  },
   buttonIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: IS_TABLET ? 56 : 48,
+    marginBottom: spacing.md,
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontWeight: '600',
     color: '#fff',
   },
   uploadingContainer: {
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: IS_TABLET ? 500 : undefined,
   },
   uploadingText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: '#333',
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
   },
   progressBar: {
     width: '100%',
-    height: 8,
+    height: IS_TABLET ? 12 : 8,
     backgroundColor: '#e0e0e0',
-    borderRadius: 4,
+    borderRadius: IS_TABLET ? 6 : 4,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#007AFF',
-    borderRadius: 4,
+    borderRadius: IS_TABLET ? 6 : 4,
   },
   progressText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontWeight: '600',
     color: '#007AFF',
   },
   infoBox: {
-    marginTop: 40,
-    padding: 20,
+    marginTop: spacing.xxl,
+    padding: spacing.lg,
     backgroundColor: '#fff',
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#007AFF',
+    width: '100%',
+    maxWidth: IS_TABLET ? 600 : undefined,
+  },
+  infoBoxTablet: {
+    borderRadius: 16,
+    padding: spacing.xl,
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  infoText: {
-    fontSize: 14,
+  infoGrid: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  infoColumn: {
+    flex: 1,
+  },
+  infoItem: {
+    marginBottom: spacing.xs,
+  },
+  infoItemText: {
+    fontSize: responsiveFontSize(14),
     color: '#666',
-    lineHeight: 22,
+    lineHeight: responsiveFontSize(22),
+    marginBottom: spacing.xs,
+  },
+  tipsBox: {
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    backgroundColor: '#FFF9E6',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFB800',
+    width: '100%',
+    maxWidth: 600,
+  },
+  tipsTitle: {
+    fontSize: responsiveFontSize(16),
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: spacing.sm,
+  },
+  tipsText: {
+    fontSize: responsiveFontSize(14),
+    color: '#666',
+    lineHeight: responsiveFontSize(22),
   },
 });

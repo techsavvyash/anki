@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, Deck } from '../types';
 import apiClient from '../api/client';
+import { IS_TABLET, spacing, responsiveFontSize, getGridColumns } from '../utils/responsive';
 
 type DecksScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Decks'>;
 
@@ -22,10 +24,21 @@ export default function DecksScreen({ navigation }: Props) {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { width, height } = useWindowDimensions();
+
+  // Calculate columns based on orientation
+  const numColumns = IS_TABLET ? (width > height ? 3 : 2) : 1;
+  // Force re-render when orientation changes by using key
+  const [key, setKey] = useState(0);
 
   useEffect(() => {
     loadDecks();
   }, []);
+
+  useEffect(() => {
+    // Update key when dimensions change to force FlatList re-render with new numColumns
+    setKey(prev => prev + 1);
+  }, [width, height]);
 
   const loadDecks = async () => {
     try {
@@ -46,7 +59,10 @@ export default function DecksScreen({ navigation }: Props) {
 
   const renderDeck = ({ item }: { item: Deck }) => (
     <TouchableOpacity
-      style={styles.deckCard}
+      style={[
+        styles.deckCard,
+        IS_TABLET && styles.deckCardTablet,
+      ]}
       onPress={() =>
         navigation.navigate('DeckDetail', {
           deckId: item.id,
@@ -55,13 +71,15 @@ export default function DecksScreen({ navigation }: Props) {
       }
     >
       <View style={styles.deckHeader}>
-        <Text style={styles.deckName}>{item.name}</Text>
+        <Text style={styles.deckName} numberOfLines={2}>
+          {item.name}
+        </Text>
         <View style={styles.cardCountBadge}>
           <Text style={styles.cardCountText}>{item.card_count}</Text>
         </View>
       </View>
       {item.description ? (
-        <Text style={styles.deckDescription} numberOfLines={2}>
+        <Text style={styles.deckDescription} numberOfLines={IS_TABLET ? 3 : 2}>
           {item.description}
         </Text>
       ) : null}
@@ -100,16 +118,22 @@ export default function DecksScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
+        key={`deck-grid-${key}-${numColumns}`} // Force re-render on orientation change
         data={decks}
         keyExtractor={(item) => item.id}
         renderItem={renderDeck}
-        contentContainerStyle={styles.listContainer}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+        contentContainerStyle={[
+          styles.listContainer,
+          IS_TABLET && styles.listContainerTablet,
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, IS_TABLET && styles.fabTablet]}
         onPress={() => navigation.navigate('Upload')}
       >
         <Text style={styles.fabText}>+</Text>
@@ -133,82 +157,102 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing.xxl,
     backgroundColor: '#f5f5f5',
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 20,
+    fontSize: IS_TABLET ? 96 : 64,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     color: '#666',
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
+    marginBottom: spacing.xl,
+    lineHeight: responsiveFontSize(24),
+    maxWidth: IS_TABLET ? 600 : undefined,
   },
   importButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: IS_TABLET ? 16 : 12,
   },
   importButtonText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontWeight: '600',
     color: '#fff',
   },
   listContainer: {
-    padding: 16,
+    padding: spacing.md,
+  },
+  listContainerTablet: {
+    padding: spacing.lg,
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  columnWrapper: {
+    gap: spacing.md,
   },
   deckCard: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  deckCardTablet: {
+    borderRadius: 16,
+    padding: spacing.lg,
+    shadowRadius: 8,
+    elevation: 5,
+  },
   deckHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
   },
   deckName: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    marginRight: spacing.sm,
   },
   cardCountBadge: {
     backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginLeft: 8,
+    borderRadius: IS_TABLET ? 16 : 12,
+    paddingHorizontal: IS_TABLET ? 14 : 12,
+    paddingVertical: IS_TABLET ? 6 : 4,
+    minWidth: IS_TABLET ? 50 : 40,
+    alignItems: 'center',
   },
   cardCountText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontWeight: '600',
     color: '#fff',
   },
   deckDescription: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     color: '#666',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    lineHeight: responsiveFontSize(20),
   },
   deckDate: {
-    fontSize: 12,
+    fontSize: responsiveFontSize(12),
     color: '#999',
   },
   fab: {
@@ -227,8 +271,15 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  fabTablet: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    bottom: 30,
+    right: 30,
+  },
   fabText: {
-    fontSize: 32,
+    fontSize: IS_TABLET ? 40 : 32,
     color: '#fff',
     fontWeight: '300',
   },
