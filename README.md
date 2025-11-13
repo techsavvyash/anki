@@ -38,6 +38,24 @@ A full-stack spaced repetition flashcard application with support for large .apk
 └─────────────────┘
 ```
 
+## 📖 Documentation
+
+**Comprehensive documentation is available in the `docs/` directory**, powered by [Quartz 4](https://quartz.jzhao.xyz/).
+
+**View locally**:
+```bash
+cd docs
+npx quartz build --serve
+```
+
+**Documentation includes**:
+- 📘 [Getting Started](docs/content/getting-started/index.md) - Setup and installation
+- 🏗️ [Architecture](docs/content/architecture/index.md) - System design and architecture
+- ✨ [Features](docs/content/features/index.md) - Complete feature documentation
+- 🔌 [API Reference](docs/content/api/index.md) - Backend API documentation
+- 🧪 [Testing](docs/content/testing/index.md) - Test suite and quality assurance
+- 🚀 [Deployment](docs/content/deployment/index.md) - Production deployment guide
+
 ## 📋 Prerequisites
 
 ### Backend
