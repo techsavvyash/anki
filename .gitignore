@@ -1,22 +1,38 @@
-# Backend
-backend/uploads/
-backend/data/
-backend/server
-backend/*.db
+# Dependencies
+node_modules/
+pnpm-lock.yaml
 
-# Frontend/Mobile
-mobile/node_modules/
-mobile/.expo/
-mobile/.expo-shared/
-mobile/dist/
-mobile/npm-debug.*
-mobile/*.jks
-mobile/*.p8
-mobile/*.p12
-mobile/*.key
-mobile/*.mobileprovision
-mobile/*.orig.*
-mobile/web-build/
+# Build outputs
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Backend
+apps/backend/uploads/
+apps/backend/data/
+apps/backend/server
+apps/backend/*.db
+
+# Mobile
+apps/mobile/.expo/
+apps/mobile/.expo-shared/
+apps/mobile/npm-debug.*
+apps/mobile/*.jks
+apps/mobile/*.p8
+apps/mobile/*.p12
+apps/mobile/*.key
+apps/mobile/*.mobileprovision
+apps/mobile/*.orig.*
+apps/mobile/web-build/
+
+# Documentation
+apps/docs/public/
+apps/docs/.quartz-cache/
+
+# Test coverage
+coverage/
+*.coverage
 
 # macOS
 .DS_Store
@@ -27,6 +43,7 @@ mobile/web-build/
 # Environment
 .env
 .env.local
+.env*.local
 
 # IDE
 .vscode/

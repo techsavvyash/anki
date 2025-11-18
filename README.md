@@ -1,6 +1,6 @@
-# Anki Flashcard App
+# Anki Flashcard Monorepo
 
-A full-stack spaced repetition flashcard application with support for large .apkg file imports (800MB+).
+A full-stack spaced repetition flashcard application with support for large .apkg file imports (800MB+), organized as a modern TypeScript monorepo.
 
 ## 🎯 Features
 
@@ -11,6 +11,7 @@ A full-stack spaced repetition flashcard application with support for large .apk
 - **.apkg Parser** - Full support for Anki package format
 - **Multiple Decks** - Import and manage multiple flashcard decks
 - **Progress Tracking** - Monitor your learning progress
+- **Monorepo Structure** - Shared packages and efficient build system with Turborepo
 
 ## 🏗️ Architecture
 
@@ -58,67 +59,102 @@ npx quartz build --serve
 
 ## 📋 Prerequisites
 
-### Backend
-- Go 1.21+
-- GCC (for SQLite)
-
-### Mobile App
-- Node.js 18+
-- Expo CLI
-- iOS Simulator (Xcode) or physical iOS device
+- **Node.js** 18+ and **pnpm** 8+
+- **Go** 1.21+ and **GCC** (for SQLite)
+- **Expo CLI** for mobile development
+- **iOS Simulator** (Xcode) or physical iOS device
 
 ## 🚀 Quick Start
 
-### 1. Start the Backend
+### 1. Install Dependencies
 
 ```bash
-cd backend
-go mod download
-go run ./cmd/server/main.go
+# Install pnpm if you haven't already
+npm install -g pnpm
+
+# Install all dependencies
+pnpm install
 ```
 
-The backend will start on `http://localhost:8080`
-
-### 2. Start the Mobile App
+### 2. Build Shared Packages
 
 ```bash
-cd mobile
-npm install
-npm start
+pnpm build
 ```
 
-Then press `i` for iOS Simulator or scan QR code for physical device.
+### 3. Start Development
 
-### 3. Import Your First Deck
+Run all apps in parallel:
+```bash
+pnpm dev
+```
+
+Or run individual apps:
+
+**Backend:**
+```bash
+pnpm backend run
+# or
+cd apps/backend && make run
+```
+
+**Mobile App:**
+```bash
+pnpm mobile start
+# or
+cd apps/mobile && pnpm start
+```
+
+**Documentation:**
+```bash
+pnpm docs dev
+# or
+cd apps/docs && pnpm dev
+```
+
+### 4. Import Your First Deck
 
 1. Tap "Import .apkg File" in the app
 2. Select an .apkg file (even 800MB+ files work!)
 3. Wait for processing
 4. Start reviewing!
 
-## 📁 Project Structure
+## 📁 Monorepo Structure
 
 ```
 anki/
-├── backend/              # Go backend server
-│   ├── cmd/
-│   │   └── server/      # Main application
-│   ├── internal/
-│   │   ├── api/         # HTTP handlers
-│   │   ├── models/      # Data models
-│   │   ├── scheduler/   # SM-2 algorithm
-│   │   └── storage/     # Database layer
-│   └── pkg/
-│       └── apkg/        # .apkg file parser
+├── apps/                     # Applications
+│   ├── backend/              # Go backend server
+│   │   ├── cmd/server/       # Main application
+│   │   ├── internal/
+│   │   │   ├── api/          # HTTP handlers
+│   │   │   ├── models/       # Data models
+│   │   │   ├── scheduler/    # SM-2 algorithm
+│   │   │   └── storage/      # Database layer
+│   │   └── pkg/apkg/         # .apkg file parser
+│   │
+│   ├── mobile/               # React Native mobile app
+│   │   ├── src/
+│   │   │   ├── api/          # Backend API client
+│   │   │   ├── screens/      # App screens
+│   │   │   └── types/        # Mobile-specific types
+│   │   └── App.tsx           # Main app component
+│   │
+│   └── docs/                 # Quartz documentation site
+│       └── content/          # Documentation content
 │
-├── mobile/              # React Native mobile app
-│   ├── src/
-│   │   ├── api/         # Backend API client
-│   │   ├── screens/     # App screens
-│   │   └── types/       # TypeScript types
-│   └── App.tsx          # Main app component
+├── packages/                 # Shared packages
+│   ├── types/                # @anki/types - Shared TypeScript types
+│   │   └── src/index.ts      # Domain models (User, Deck, Card, etc.)
+│   │
+│   └── constants/            # @anki/constants - Shared constants
+│       └── src/index.ts      # API config, SM-2 constants, etc.
 │
-└── README.md            # This file
+├── package.json              # Root package.json with workspaces
+├── pnpm-workspace.yaml       # pnpm workspace configuration
+├── turbo.json                # Turborepo pipeline configuration
+├── tsconfig.base.json        # Shared TypeScript configuration
+└── README.md                 # This file
 ```
 
 ## 🎓 How It Works
@@ -166,10 +202,13 @@ Options:
 
 ### Mobile App Configuration
 
-Edit `mobile/src/api/client.ts`:
+Edit `packages/constants/src/index.ts` or set environment variable:
 
 ```typescript
-const API_BASE_URL = 'http://localhost:8080'; // Change this
+export const API_CONFIG = {
+  BASE_URL: process.env.API_BASE_URL || 'http://localhost:8080',
+  // ...
+};
 ```
 
 ## 📊 API Documentation
@@ -198,25 +237,50 @@ See `backend/README.md` for detailed API documentation.
 
 ### Running Tests
 
-Backend:
+Run all tests:
 ```bash
-cd backend
-go test ./...
+pnpm test
+```
+
+Run tests for specific app:
+```bash
+pnpm --filter @anki/mobile test
+cd apps/backend && make test
+```
+
+### Linting & Formatting
+
+```bash
+pnpm lint          # Lint all TypeScript code
+pnpm format        # Format all code with Prettier
 ```
 
 ### Building for Production
 
-Backend:
+Build all packages:
 ```bash
-cd backend
-go build -o server ./cmd/server
+pnpm build
 ```
 
-Mobile (iOS):
+Build specific app:
 ```bash
-cd mobile
-eas build --platform ios
+pnpm --filter @anki/mobile build
+cd apps/backend && make build
 ```
+
+### Monorepo Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm install` | Install all dependencies |
+| `pnpm build` | Build all packages |
+| `pnpm dev` | Start all apps in dev mode |
+| `pnpm test` | Run all tests |
+| `pnpm lint` | Lint TypeScript code |
+| `pnpm format` | Format code with Prettier |
+| `pnpm clean` | Clean build artifacts |
+| `pnpm mobile <cmd>` | Run mobile app command |
+| `pnpm docs <cmd>` | Run docs command |
 
 ## 🎨 Screenshots
 

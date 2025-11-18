@@ -1,8 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Configure your backend URL here
-const API_BASE_URL = 'http://localhost:8080'; // Change this to your backend URL
+import { API_CONFIG } from '@anki/constants';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -10,11 +8,9 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      baseURL: API_CONFIG.BASE_URL,
+      timeout: API_CONFIG.TIMEOUT,
+      headers: API_CONFIG.DEFAULT_HEADERS,
     });
 
     // Add request interceptor to include user ID
