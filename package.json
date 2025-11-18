@@ -1,0 +1,31 @@
+{
+  "name": "anki-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anki flashcard application monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "mobile": "pnpm --filter @anki/mobile",
+    "backend": "cd apps/backend && make",
+    "docs": "pnpm --filter @anki/docs"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.1.3"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
